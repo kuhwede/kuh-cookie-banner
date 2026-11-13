@@ -24,7 +24,6 @@ final class KC_GitHub_Updater
 
         add_filter('pre_set_site_transient_update_plugins', array($this, 'filter_update_transient'));
         add_filter('plugins_api', array($this, 'filter_plugin_information'), 20, 3);
-        add_filter('auto_update_plugin', array($this, 'enable_automatic_updates'), 10, 2);
     }
 
     public static function register($plugin_file, $current_version)
@@ -90,15 +89,6 @@ final class KC_GitHub_Updater
         );
 
         return $info;
-    }
-
-    public function enable_automatic_updates($update, $item)
-    {
-        if (is_object($item) && isset($item->plugin) && $item->plugin === $this->plugin_basename) {
-            return true;
-        }
-
-        return $update;
     }
 
     private function get_latest_release()
