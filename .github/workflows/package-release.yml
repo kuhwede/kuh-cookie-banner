@@ -35,9 +35,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.release_tag }}
           VERSION: ${{ steps.version.outputs.version }}
-        run: gh release create "$RELEASE_TAG" --target main --title "Kuh Cookie $VERSION" --generate-notes
-      - name: Build and attach ZIP to published release
-        if: github.event_name == 'release'
+        run: gh release view "$RELEASE_TAG" >/dev/null 2>&1 || gh release create "$RELEASE_TAG" --target main --title "Kuh Cookie $VERSION" --generate-notes
+      - name: Build and attach versioned ZIP
         env:
           GH_TOKEN: ${{ github.token }}
-        run: zip -qr "kc-cookie-banner-${{ steps.version.outputs.version }}.zip" kc-cookie-banner && gh release upload "$GITHUB_REF_NAME" "kc-cookie-banner-${{ steps.version.outputs.version }}.zip" --clobber
+        run: zip -qr "kc-cookie-banner-${{ steps.version.outputs.version }}.zip" kc-cookie-banner && gh release upload "${{ steps.version.outputs.tag_name }}" "kc-cookie-banner-${{ steps.version.outputs.version }}.zip" --clobber
