@@ -55,7 +55,7 @@ trait KC_Consent_Trait
         }
 
         foreach ($this->categories as $category => $label) {
-            $lines = preg_split('/\\r\\n|\\r|\\n/', $settings['rules'][$category]);
+            $lines = preg_split('/\r\n|\r|\n/', $settings['rules'][$category]);
             foreach ($lines as $line) {
                 $rule = strtolower(trim($line));
                 if ($rule !== '' && strpos($url, $rule) !== false) {
@@ -140,11 +140,11 @@ trait KC_Consent_Trait
 
         if (!$this->gtm_allowed($consent)) {
             $html = preg_replace_callback(
-                '~<script\\b[^>]*>.*?</script\\s*>~is',
+                '~<script\b[^>]*>.*?</script\s*>~is',
                 function ($matches) use ($gtm_id) {
                     $block = $matches[0];
                     $has_gtm_loader = stripos($block, 'googletagmanager.com/gtm.js') !== false;
-                    $has_standard_gtm_id = preg_match('/\\\\bGTM-[A-Z0-9]+\\\\b/i', $block);
+                    $has_standard_gtm_id = preg_match('/\\bGTM-[A-Z0-9]+\\b/i', $block);
                     $has_configured_id = $gtm_id !== '' && stripos($block, $gtm_id) !== false;
                     if (($has_gtm_loader && $has_standard_gtm_id) || $has_configured_id) {
                         return '<script type="text/plain" data-rkcb-blocked-service="gtm"></script>';
@@ -155,7 +155,7 @@ trait KC_Consent_Trait
             );
 
             $html = preg_replace(
-                '~<noscript\\b[^>]*>.*?' . preg_quote($gtm_id !== '' ? $gtm_id : 'GTM-', '~') . '.*?</noscript\\s*>~is',
+                '~<noscript\b[^>]*>.*?' . preg_quote($gtm_id !== '' ? $gtm_id : 'GTM-', '~') . '.*?</noscript\s*>~is',
                 '',
                 $html
             );
@@ -163,11 +163,11 @@ trait KC_Consent_Trait
 
         if (!$this->hotjar_allowed($consent)) {
             $html = preg_replace_callback(
-                '~<script\\b[^>]*>.*?</script\\s*>~is',
+                '~<script\b[^>]*>.*?</script\s*>~is',
                 function ($matches) use ($hotjar_id) {
                     $block = $matches[0];
                     $has_hotjar_id = stripos($block, 'hotjar.com') !== false || stripos($block, 'hotjar-' . $hotjar_id) !== false;
-                    $has_hjid = preg_match('/\\bhjid\\s*[:=]\\s*[\\'\\"]?' . preg_quote($hotjar_id, '/') . '\\b/i', $block);
+                    $has_hjid = preg_match('/\bhjid\s*[:=]\s*[\'\"]?' . preg_quote($hotjar_id, '/') . '\b/i', $block);
                     if ($has_hotjar_id || $has_hjid) {
                         return '<script type="text/plain" data-rkcb-blocked-service="hotjar"></script>';
                     }
@@ -205,7 +205,7 @@ trait KC_Consent_Trait
         }
 
         $html = preg_replace_callback(
-            '~<script\\b(?=[^>]*\\bsrc\\s*=\\s*(["\\'])(.*?)\\1)[^>]*>\\s*</script\\s*>~is',
+            '~<script\b(?=[^>]*\bsrc\s*=\s*(["\'])(.*?)\1)[^>]*>\s*</script\s*>~is',
             function ($matches) use ($consent, $settings) {
                 $url = $matches[2];
                 $category = $this->category_for_url($url);
@@ -237,7 +237,7 @@ trait KC_Consent_Trait
         }
 
         $html = preg_replace_callback(
-            '~<iframe\\b(?=[^>]*\\bsrc\\s*=\\s*(["\\'])(.*?)\\1)[^>]*>.*?</iframe\\s*>~is',
+            '~<iframe\b(?=[^>]*\bsrc\s*=\s*(["\'])(.*?)\1)[^>]*>.*?</iframe\s*>~is',
             function ($matches) use ($consent, $settings) {
                 $url = $matches[2];
                 $category = $this->category_for_url($url);
