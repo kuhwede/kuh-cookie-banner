@@ -1,1 +1,35 @@
-'Statistiken', 'marketing' =&gt; 'Marketing', 'external\_media' =&gt; 'Externe Medien', ); public function \_\_construct() { add\_action('admin\_menu', array($this, 'admin\_menu')); add\_action('admin\_init', array($this, 'register\_settings')); add\_action('template\_redirect', array($this, 'start\_output\_buffer'), 0); add\_action('wp\_head', array($this, 'print\_nr\_cookie\_handler'), 0); add\_action('wp\_head', array($this, 'print\_styles'), 99); add\_action('wp\_footer', array($this, 'print\_frontend'), 99); add\_shortcode('rkcb\_settings\_link', array($this, 'settings\_link\_shortcode')); } use KC\_Settings\_Trait; use KC\_Consent\_Trait; use KC\_Frontend\_Trait; }
+<?php
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+require_once __DIR__ . '/traits/trait-kc-settings.php';
+require_once __DIR__ . '/traits/trait-kc-consent.php';
+require_once __DIR__ . '/traits/trait-kc-frontend.php';
+
+final class RKCB_Plugin
+{
+    const OPTION = 'rkcb_options';
+    const COOKIE_NAME = 'kccb_consent_v1';
+
+    private $categories = array(
+        'statistics'     => 'Statistiken',
+        'marketing'      => 'Marketing',
+        'external_media' => 'Externe Medien',
+    );
+
+    public function __construct()
+    {
+        add_action('admin_menu', array($this, 'admin_menu'));
+        add_action('admin_init', array($this, 'register_settings'));
+        add_action('template_redirect', array($this, 'start_output_buffer'), 0);
+        add_action('wp_head', array($this, 'print_nr_cookie_handler'), 0);
+        add_action('wp_head', array($this, 'print_styles'), 99);
+        add_action('wp_footer', array($this, 'print_frontend'), 99);
+        add_shortcode('rkcb_settings_link', array($this, 'settings_link_shortcode'));
+    }
+
+    use KC_Settings_Trait;
+    use KC_Consent_Trait;
+    use KC_Frontend_Trait;
+}
