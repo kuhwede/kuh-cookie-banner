@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Kuh Cookie
  * Description: Cookie-Banner mit Kategorien und gezielter Einwilligungssteuerung für GTM, Hotjar und Facebook Pixel.
- * Version: 1.4.4
+ * Version: 1.4.5
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Author: Ron Kuhwede
@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('KC_COOKIE_VERSION')) {
-    define('KC_COOKIE_VERSION', '1.4.4');
+    define('KC_COOKIE_VERSION', '1.4.5');
 }
 
 require_once __DIR__ . '/includes/class-kc-updater.php';
