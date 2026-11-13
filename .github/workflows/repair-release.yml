@@ -1,0 +1,124 @@
+name: Repair and publish Kuh Cookie 1.4.5
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Restore updater and apply the fix
+        run: |
+          git fetch --depth=1 origin refs/tags/v1.4.3:refs/tags/v1.4.3
+          git show v1.4.3:kc-cookie-banner/includes/class-kc-updater.php > kc-cookie-banner/includes/class-kc-updater.php
+          python3 - <<'PY'
+          from pathlib import Path
+
+          updater_path = Path('kc-cookie-banner/includes/class-kc-updater.php')
+          source = updater_path.read_text()
+          start = source.index('    public function filter_update_transient($transient)\n')
+          end = source.index('    public function filter_plugin_information', start)
+          replacement = """    public function filter_update_transient($transient)
+              {
+                  if (!is_object($transient) || empty($transient->checked) || !is_array($transient->checked)) {
+                      return $transient;
+                  }
+
+                  if (!array_key_exists($this->plugin_basename, $transient->checked)) {
+                      return $transient;
+                  }
+
+                  if (!isset($transient->response) || !is_array($transient->response)) {
+                      $transient->response = array();
+                  }
+                  if (!isset($transient->no_update) || !is_array($transient->no_update)) {
+                      $transient->no_update = array();
+                  }
+
+                  $release = $this->get_latest_release();
+                  if (!$release) {
+                      if (!isset($transient->response[$this->plugin_basename]) && !isset($transient->no_update[$this->plugin_basename])) {
+                          $transient->no_update[$this->plugin_basename] = (object) array(
+                              'slug'         => self::PLUGIN_SLUG,
+                              'plugin'       => $this->plugin_basename,
+                              'new_version'  => $this->current_version,
+                              'url'          => 'https://github.com/' . self::OWNER . '/' . self::REPOSITORY . '/releases',
+                              'package'      => '',
+                              'requires'     => '6.0',
+                              'requires_php' => '7.4',
+                          );
+                      }
+
+                      return $transient;
+                  }
+
+                  if (version_compare($release['version'], $this->current_version, '>')) {
+                      unset($transient->no_update[$this->plugin_basename]);
+                      $transient->response[$this->plugin_basename] = (object) array(
+                          'slug'         => self::PLUGIN_SLUG,
+                          'plugin'       => $this->plugin_basename,
+                          'new_version'  => $release['version'],
+                          'url'          => $release['html_url'],
+                          'package'      => $release['download_url'],
+                          'requires'     => '6.0',
+                          'requires_php' => '7.4',
+                      );
+                  } else {
+                      unset($transient->response[$this->plugin_basename]);
+                      $transient->no_update[$this->plugin_basename] = (object) array(
+                          'slug'         => self::PLUGIN_SLUG,
+                          'plugin'       => $this->plugin_basename,
+                          'new_version'  => $this->current_version,
+                          'url'          => $release['html_url'],
+                          'package'      => '',
+                          'requires'     => '6.0',
+                          'requires_php' => '7.4',
+                      );
+                  }
+
+                  return $transient;
+              }
+
+          """
+          updater_path.write_text(source[:start] + replacement + source[end:])
+
+          main_path = Path('kc-cookie-banner/kc-cookie-banner.php')
+          main = main_path.read_text()
+          if 'Version: 1.4.4' not in main or "define('KC_COOKIE_VERSION', '1.4.4');" not in main:
+              raise SystemExit('Unexpected plugin version; refusing to publish')
+          main = main.replace('Version: 1.4.4', 'Version: 1.4.5', 1)
+          main = main.replace("define('KC_COOKIE_VERSION', '1.4.4');", "define('KC_COOKIE_VERSION', '1.4.5');", 1)
+          main_path.write_text(main)
+          PY
+          if command -v php >/dev/null 2>&1; then
+            php -l kc-cookie-banner/includes/class-kc-updater.php
+            php -l kc-cookie-banner/kc-cookie-banner.php
+          else
+            echo 'PHP CLI unavailable; syntax check skipped.'
+          fi
+      - name: Commit repaired source
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add kc-cookie-banner/includes/class-kc-updater.php kc-cookie-banner/kc-cookie-banner.php
+          git commit -m 'Repair Kuh Cookie updater and restore auto-update controls'
+          git push origin HEAD:main
+      - name: Retire broken 1.4.4 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit v1.4.4 --prerelease || true
+          gh release delete-asset v1.4.4 kc-cookie-banner-1.4.4.zip --yes || true
+      - name: Create repaired release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create v1.4.5 --target main --title 'Kuh Cookie 1.4.5' --generate-notes
+      - name: Build and attach ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: zip -qr kc-cookie-banner-1.4.5.zip kc-cookie-banner && gh release upload v1.4.5 kc-cookie-banner-1.4.5.zip --clobber
