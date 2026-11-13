@@ -1,8 +1,15 @@
 name: Package GitHub release
 
-on:
+"on":
   release:
-    types: \[published\]
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing release tag to package
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -13,24 +20,13 @@ jobs:
     steps:
       - name: Check out release source
         uses: actions/checkout@v4
-
-```
-  - name: Verify version and build plugin ZIP
-    id: package
-    shell: bash
-    run: |
-      set -euo pipefail
-      VERSION="$(sed -n 's/^ \* Version: //p' kc-cookie-banner/kc-cookie-banner.php | head -n 1)"
-      TAG_VERSION="${GITHUB_REF_NAME#v}"
-      if [ -z "$VERSION" ] || [ "$VERSION" != "$TAG_VERSION" ]; then
-        echo "Release tag (${GITHUB_REF_NAME}) does not match plugin version (${VERSION})." >&2
-        exit 1
-      fi
-      zip -qr "kc-cookie-banner-${VERSION}.zip" kc-cookie-banner
-      echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-
-  - name: Attach ZIP to the published release
-    env:
-      GH_TOKEN: ${{ github.token }}
-    run: gh release upload "$GITHUB_REF_NAME" "kc-cookie-banner-${{ steps.package.outputs.version }}.zip" --clobber
-```
+      - name: Build and attach versioned plugin ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          VERSION="$(awk '$2 == "Version:" {print $3; exit}' kc-cookie-banner/kc-cookie-banner.php)";
+          TAG_NAME="${{ github.event.release.tag_name || inputs.release_tag }}";
+          TAG_VERSION="${TAG_NAME#v}";
+          test -n "$VERSION" && test "$VERSION" = "$TAG_VERSION" &&
+          zip -qr "kc-cookie-banner-${VERSION}.zip" kc-cookie-banner &&
+          gh release upload "$TAG_NAME" "kc-cookie-banner-${VERSION}.zip" --clobber
